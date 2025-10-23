@@ -1,0 +1,35 @@
+# FastAPI and Server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# LangChain
+langchain==0.1.0
+langchain-community==0.0.10
+langchain-openai==0.0.2
+langchain-anthropic==0.0.1
+
+# LLM Providers
+openai==1.6.1
+anthropic==0.8.1
+
+# Open Source LLM Support
+transformers==4.36.0
+torch==2.1.0
+sentence-transformers==2.2.2
+
+# Vector Store and Memory
+chromadb==0.4.18
+faiss-cpu==1.7.4
+
+# Utilities
+requests==2.31.0
+httpx==0.25.2
+tenacity==8.2.3
+tiktoken==0.5.2
+
+# Logging and Monitoring
+python-json-logger==2.0.7
+

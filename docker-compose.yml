@@ -1,0 +1,133 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dental-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=dental_chatbot
+      - POSTGRES_USER=dental_user
+      - POSTGRES_PASSWORD=dental_pass_2025
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - dental-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dental_user -d dental_chatbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Node.js Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dental-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
+      - CHATBOT_SERVICE_URL=http://chatbot-service:8001
+      # Database Configuration
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=dental_chatbot
+      - DB_USER=dental_user
+      - DB_PASSWORD=dental_pass_2025
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chatbot-service:
+        condition: service_started
+    networks:
+      - dental-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Python LangChain Chatbot Service
+  chatbot-service:
+    build:
+      context: ./chatbot-service
+      dockerfile: Dockerfile
+    container_name: dental-chatbot
+    ports:
+      - "8001:8001"
+    environment:
+      # Service Configuration
+      - SERVICE_PORT=8001
+      - SERVICE_HOST=0.0.0.0
+      - ENVIRONMENT=production
+      
+      # LLM Provider (change as needed: mock, openai, anthropic, local)
+      - LLM_PROVIDER=${LLM_PROVIDER:-mock}
+      
+      # OpenAI Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
+      - OPENAI_TEMPERATURE=${OPENAI_TEMPERATURE:-0.7}
+      - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-1000}
+      
+      # Anthropic Configuration (if using Anthropic)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-opus-20240229}
+      
+      # Conversation Settings
+      - MAX_CONVERSATION_HISTORY=${MAX_CONVERSATION_HISTORY:-10}
+      - CONVERSATION_MEMORY_TYPE=${CONVERSATION_MEMORY_TYPE:-buffer}
+      - SESSION_TIMEOUT_MINUTES=${SESSION_TIMEOUT_MINUTES:-30}
+      
+      # Chatbot Context
+      - CHATBOT_NAME=${CHATBOT_NAME:-DentalBot}
+      - CHATBOT_ROLE=${CHATBOT_ROLE:-friendly dental assistant}
+    networks:
+      - dental-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dental-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - dental-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  dental-network:
+    driver: bridge
+
+volumes:
+  chatbot-data:
+    driver: local
+  postgres-data:
+    driver: local
