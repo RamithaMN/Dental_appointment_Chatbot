@@ -39,7 +39,8 @@ const ChatInterface: React.FC = () => {
   };
 
   const handleConfirmAppointment = () => {
-    setShowAppointmentForm(true);
+    // Send a confirmation message to the chatbot instead of opening the form
+    sendMessage('CONFIRM');
   };
 
   const handleAppointmentSubmit = (appointmentData: AppointmentData) => {

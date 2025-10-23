@@ -77,9 +77,13 @@ class MockLLM(BaseLLM):
                         user_message = line.strip().lower()
                         break
             
-            # Check if user is asking for confirmation or summary of existing appointment
-            if any(phrase in user_message for phrase in ['confirmation', 'confirm', 'summary', 'details', 'show me']):
-                return "Here is your appointment confirmation for checkup."
+            # Check if user is confirming their appointment
+            if user_message.strip() == 'confirm' or user_message.strip() == 'yes':
+                return "Perfect! Your appointment has been confirmed. We'll send you a confirmation via SMS shortly. Is there anything else I can help you with?"
+            
+            # Check if user is asking for confirmation details or summary
+            if any(phrase in user_message for phrase in ['confirmation', 'summary', 'details', 'show me']) and 'confirm' not in user_message.strip():
+                return "Let me show you your appointment details."
             
             # Simple step-by-step approach based on user message only
             # Check if user provided a name (very short message with no special keywords)

@@ -767,6 +767,17 @@ User message: {message}"""
             any(phrase in input_text.lower() for phrase in ['cancel', 'change', 'reschedule', 'modify', 'update', 'different time', 'different date'])
         )
         
+        # Check if user is just confirming an existing appointment summary (don't add summary again)
+        # Extract just the user's message from the full input_text
+        user_message_only = input_text
+        if "User message:" in input_text:
+            user_message_only = input_text.split("User message:")[-1].strip()
+        
+        user_message_lower = user_message_only.lower()
+        is_confirmation_only = (
+            user_message_lower.strip() in ['confirm', 'yes', 'ok', 'okay', 'yes please', 'yes, please']
+        )
+        
         # Check if the response already contains a DETAILED appointment summary to avoid duplication
         # Only consider it as having a summary if it has structured details (Patient Name, Date & Time, etc.)
         has_existing_summary = (
@@ -777,9 +788,9 @@ User message: {message}"""
             '**Appointment Type:**' in response
         )
         
-        logger.info(f"Appointment summary check: is_confirmed_booking={is_confirmed_booking}, has_existing_summary={has_existing_summary}, is_cancellation_or_change={is_cancellation_or_change}")
+        logger.info(f"Appointment summary check: is_confirmed_booking={is_confirmed_booking}, has_existing_summary={has_existing_summary}, is_cancellation_or_change={is_cancellation_or_change}, is_confirmation_only={is_confirmation_only}")
         
-        if is_confirmed_booking and not has_existing_summary and not is_cancellation_or_change:
+        if is_confirmed_booking and not has_existing_summary and not is_cancellation_or_change and not is_confirmation_only:
             logger.info("Adding appointment summary with details from conversation history")
             # Extract appointment details from conversation history
             patient_name = None
