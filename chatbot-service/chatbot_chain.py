@@ -730,8 +730,9 @@ User message: {message}"""
         # Only add appointment summary if this looks like a confirmed booking with specific details
         # Check for indicators that this is a confirmed appointment, not just an inquiry
         is_confirmed_booking = (
-            any(phrase in response.lower() for phrase in ['confirmed', 'scheduled', 'booked', 'finalized']) or
-            ('appointment' in response.lower() and any(phrase in response.lower() for phrase in ['details', 'information', 'scheduled for', 'booked for']))
+            any(phrase in response.lower() for phrase in ['confirmed', 'scheduled', 'booked', 'finalized', 'perfect! let me confirm', 'we have', 'appointment for']) or
+            ('appointment' in response.lower() and any(phrase in response.lower() for phrase in ['details', 'information', 'scheduled for', 'booked for', 'at', 'pm', 'am'])) or
+            ('phone number' in response.lower() and 'appointment' in response.lower())
         )
         
         # Exclude cancellation, change, or reschedule requests from getting appointment summaries
