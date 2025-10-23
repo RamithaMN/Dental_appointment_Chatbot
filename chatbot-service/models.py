@@ -35,6 +35,9 @@ class ChatResponse(BaseModel):
     message_count: int = Field(..., description="Number of messages in this session")
     
     model_config = {
+        "json_encoders": {
+            datetime: lambda v: v.isoformat()
+        },
         "json_schema_extra": {
             "examples": [{
                 "response": "I'd be happy to help you schedule a teeth cleaning! ...",
@@ -57,6 +60,12 @@ class SessionCreateResponse(BaseModel):
     
     session_id: str = Field(..., description="New session ID")
     created_at: datetime = Field(default_factory=datetime.now, description="Session creation time")
+    
+    model_config = {
+        "json_encoders": {
+            datetime: lambda v: v.isoformat()
+        }
+    }
 
 
 class SessionInfoResponse(BaseModel):
@@ -78,6 +87,12 @@ class HealthCheckResponse(BaseModel):
     llm_available: bool = Field(..., description="Whether LLM is available")
     active_sessions: int = Field(..., description="Number of active sessions")
     timestamp: datetime = Field(default_factory=datetime.now, description="Check timestamp")
+    
+    model_config = {
+        "json_encoders": {
+            datetime: lambda v: v.isoformat()
+        }
+    }
 
 
 class ErrorResponse(BaseModel):
@@ -86,4 +101,10 @@ class ErrorResponse(BaseModel):
     detail: str = Field(..., description="Error message")
     error_code: Optional[str] = Field(None, description="Error code")
     timestamp: datetime = Field(default_factory=datetime.now, description="Error timestamp")
+    
+    model_config = {
+        "json_encoders": {
+            datetime: lambda v: v.isoformat()
+        }
+    }
 

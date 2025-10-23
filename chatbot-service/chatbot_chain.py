@@ -68,11 +68,11 @@ CRITICAL APPOINTMENT RULE: When confirming appointments, you MUST always include
 
 **Office Hours:**
 - Monday - Friday: 8:00 AM - 6:00 PM
-- Saturday: 9:00 AM - 2:00 PM (ONLY offer times between 9:00 AM - 2:00 PM for Saturday appointments)
+- Saturday: 9:00 AM - 2:00 PM
 - Sunday: Closed
 - Emergency line available 24/7
 
-**CRITICAL SATURDAY RULE: When booking Saturday appointments, NEVER offer times after 2:00 PM. Saturday hours are strictly 9:00 AM - 2:00 PM.**
+**IMPORTANT: Do NOT apologize for normal business days. Saturday appointments are perfectly normal and acceptable. Only apologize if there's an actual error or if the clinic is closed (Sundays).**
 
 **IMPORTANT: When mentioning business hours, always say "Monday through Friday" or "Monday-Friday" without specific dates. Do NOT say "Monday, [date] through Friday, [date]" as this creates confusion.**
 
@@ -85,8 +85,7 @@ When a patient wants to book an appointment, collect this information IN ORDER:
 2. **Date & Time** - Preferred appointment date and time
    - If they say "tomorrow" calculate the actual date
    - If they say a time like "4:30", confirm if they mean AM or PM
-   - **IMPORTANT**: For Saturday appointments, only offer times between 9:00 AM - 2:00 PM
-   - Common times: 9:00 AM, 10:00 AM, 2:00 PM (Monday-Friday: also 3:00 PM, 4:30 PM)
+   - Common times: 9:00 AM, 10:00 AM, 2:00 PM, 3:00 PM, 4:30 PM
 3. **Reason for Visit** - What type of appointment (checkup, cleaning, pain, emergency, etc.)
 4. **Contact Phone** - Phone number to reach them
 
@@ -95,7 +94,7 @@ IMPORTANT APPOINTMENT GUIDELINES:
 - Don't repeat questions you've already asked
 - If the patient provides multiple pieces of information at once, acknowledge all of it
 - Confirm all details before saying the appointment is "booked"
-- Once you have ALL required information, provide a summary and say: "Great! I have all the details. To complete your booking, please click the 'Book Appointment' button below or I can have our staff call you to finalize it."
+- Once you have ALL required information, provide a summary and say: "Great! I have all the details. To complete your booking, please click the 'Confirm Appointment' button below or I can have our staff call you to finalize it."
 - Be natural in conversation - if they answer multiple questions at once, accept all the information
 
 **Example Good Flow:**
@@ -108,7 +107,7 @@ You: "Perfect! 4:30 PM tomorrow. What brings you in - is this for a routine chec
 User: "cleaning"
 You: "Excellent! A teeth cleaning appointment. Last thing - what's the best phone number to reach you at?"
 User: "555-1234"
-You: "Perfect! Let me confirm: Teeth cleaning appointment for Rohit tomorrow at 4:30 PM, and we'll call you at 555-1234 if needed. To complete your booking, please click the 'Book Appointment' button that will appear, or I can have our receptionist call you to finalize the booking. Is there anything else you'd like to know?"
+You: "Perfect! Let me confirm: Teeth cleaning appointment for Rohit tomorrow at 4:30 PM, and we'll call you at 555-1234 if needed. To complete your booking, please click the 'Confirm Appointment' button below, or I can have our receptionist call you to finalize the booking. Is there anything else you'd like to know?"
 
 **Guidelines:**
 - Be friendly, professional, and reassuring
@@ -320,7 +319,7 @@ User message: {message}"""
             # Note: Day references are replaced later in the _force_exact_dates method to avoid double replacement
             
             # Apply comprehensive date replacement in one pass to avoid duplication
-            response = self._apply_date_replacements(response, today, input_text)
+            response = self._apply_date_replacements(response, today, input_text, session)
             
             # Update session
             session.add_message(message, response)
@@ -461,13 +460,15 @@ User message: {message}"""
         
         return response
     
-    def _apply_date_replacements(self, response: str, today, input_text: str) -> str:
+    def _apply_date_replacements(self, response: str, today, input_text: str, session=None) -> str:
         """
         Apply all date replacements in one comprehensive pass to avoid duplication.
         
         Args:
             response: Original response from LLM
             today: Current datetime object
+            input_text: The input text sent to the LLM
+            session: Conversation session (optional, for extracting user details)
             
         Returns:
             str: Response with exact dates (no duplication)
@@ -634,9 +635,18 @@ User message: {message}"""
                 # Also check if user is asking about "next month" - don't apply date replacements in this case
                 is_next_month_request = any(phrase in input_text.lower() for phrase in ['next month', 'following month', 'upcoming month'])
                 
+                # Check if response is about Sunday closure - don't apply date replacements in this case
+                is_sunday_closure_message = 'closed on sundays' in response.lower() or 'closed on sunday' in response.lower()
                 
-                if not has_specific_dates and not is_next_month_request:
+                # Don't apply date replacements at all if it's a Sunday closure message
+                # This preserves "Monday-Friday" and "Saturday" without specific dates
+                if not has_specific_dates and not is_next_month_request and not is_sunday_closure_message:
                     for day, replacement in week_replacements.items():
+                        # Skip if day is part of "Monday-Friday" or "Monday through Friday" pattern
+                        if re.search(r'\b' + day + r'\s*[-–]\s*Friday', response, re.IGNORECASE):
+                            continue
+                        if re.search(r'\bMonday\s+through\s+' + day, response, re.IGNORECASE):
+                            continue
                         pattern = r'\b' + day + r'\b(?!\s*,\s*\w+\s+\d{1,2},\s*\d{4})'
                         response = re.sub(pattern, replacement, response, flags=re.IGNORECASE)
                 
@@ -677,7 +687,7 @@ User message: {message}"""
                             # Check if it's a Sunday
                             if user_date:
                                 if user_date.strftime("%A") == "Sunday":
-                                    response = f"I'm sorry, but our clinic is closed on Sundays. {user_date.strftime('%A, %B %d, %Y')} is not available for appointments. We're open Monday through Friday from 8:00 AM to 6:00 PM, and Saturday from 9:00 AM to 2:00 PM. Would you like to choose a different day for your appointment?"
+                                    response = f"I'm sorry, but our clinic is closed on Sundays. {user_date.strftime('%B %d, %Y')} is not available for appointments. We're open Monday-Friday from 8:00 AM to 6:00 PM, and Saturday from 9:00 AM to 2:00 PM. Would you like to choose a different day for your appointment?"
                         except ValueError:
                             # If date parsing fails, continue with normal processing
                             pass
@@ -717,22 +727,38 @@ User message: {message}"""
                             # Check if the appointment is requested for a Sunday (clinic closed)
                             if actual_day == "Sunday":
                                 # Replace the response to inform about Sunday closure
-                                response = f"I'm sorry, but our clinic is closed on Sundays. {actual_day}, {date_str} is not available for appointments. We're open Monday through Friday from 8:00 AM to 6:00 PM, and Saturday from 9:00 AM to 2:00 PM. Would you like to choose a different day for your appointment?"
+                                response = f"I'm sorry, but our clinic is closed on Sundays. {date_str} is not available for appointments. We're open Monday-Friday from 8:00 AM to 6:00 PM, and Saturday from 9:00 AM to 2:00 PM. Would you like to choose a different day for your appointment?"
                         except ValueError:
                             # If date parsing fails, skip correction
                             pass
             else:
                 # For other cases, use next week dates
-                for day, replacement in replacements.items():
-                    pattern = r'\b' + day + r'\b(?!\s*,\s*\w+\s+\d{1,2},\s*\d{4})'
-                    response = re.sub(pattern, replacement, response, flags=re.IGNORECASE)
+                # But skip if it's a Sunday closure message
+                is_sunday_closure = 'closed on sundays' in response.lower() or 'closed on sunday' in response.lower()
+                if not is_sunday_closure:
+                    for day, replacement in replacements.items():
+                        pattern = r'\b' + day + r'\b(?!\s*,\s*\w+\s+\d{1,2},\s*\d{4})'
+                        response = re.sub(pattern, replacement, response, flags=re.IGNORECASE)
         
         # Only add appointment summary if this looks like a confirmed booking with specific details
         # Check for indicators that this is a confirmed appointment, not just an inquiry
+        # Only trigger if user has provided specific appointment details (name, time, date, phone)
+        has_specific_appointment_details = (
+            # Check if user provided a name (capitalized words pattern)
+            re.search(r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\b', input_text) or
+            # Check if user provided a phone number
+            re.search(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', input_text) or
+            re.search(r'\b\d{10}\b', input_text) or
+            # Check if user provided a specific time
+            re.search(r'\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)\b', input_text) or
+            # Check if user provided a specific date
+            re.search(r'\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*\d{4})?\b', input_text) or
+            re.search(r'\b\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\b', input_text)
+        )
+        
         is_confirmed_booking = (
-            any(phrase in response.lower() for phrase in ['confirmed', 'scheduled', 'booked', 'finalized', 'perfect! let me confirm', 'we have', 'appointment for']) or
-            ('appointment' in response.lower() and any(phrase in response.lower() for phrase in ['details', 'information', 'scheduled for', 'booked for', 'at', 'pm', 'am'])) or
-            ('phone number' in response.lower() and 'appointment' in response.lower())
+            any(phrase in response.lower() for phrase in ['confirmed', 'scheduled', 'booked', 'finalized']) or
+            ('appointment' in response.lower() and any(phrase in response.lower() for phrase in ['scheduled for', 'booked for', 'appointment for']) and has_specific_appointment_details)
         )
         
         # Exclude cancellation, change, or reschedule requests from getting appointment summaries
@@ -741,78 +767,133 @@ User message: {message}"""
             any(phrase in input_text.lower() for phrase in ['cancel', 'change', 'reschedule', 'modify', 'update', 'different time', 'different date'])
         )
         
-        # Check if the response already contains an appointment summary to avoid duplication
+        # Check if the response already contains a DETAILED appointment summary to avoid duplication
+        # Only consider it as having a summary if it has structured details (Patient Name, Date & Time, etc.)
         has_existing_summary = (
             '📅 **Appointment Summary:**' in response or
             '**Appointment Summary:**' in response or
-            'appointment summary' in response.lower() or
             '**Patient Name:**' in response or
             '**Date & Time:**' in response or
             '**Appointment Type:**' in response
         )
         
+        logger.info(f"Appointment summary check: is_confirmed_booking={is_confirmed_booking}, has_existing_summary={has_existing_summary}, is_cancellation_or_change={is_cancellation_or_change}")
+        
         if is_confirmed_booking and not has_existing_summary and not is_cancellation_or_change:
-            # Extract patient name from the response and input text
-            name_patterns = [
-                # Two-word names
-                r'for\s+([A-Z][a-z]+\s+[A-Z][a-z]+)',  # "for John Doe"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+for',  # "John Doe for"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+at',   # "John Doe at"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+on',   # "John Doe on"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+appointment',  # "John Doe appointment"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+),',       # "John Doe,"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\.',      # "John Doe."
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+you',   # "John Doe you"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+we',    # "John Doe we"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+your',  # "John Doe your"
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+for\s+',  # "John Doe for "
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+at\s+',   # "John Doe at "
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+on\s+',   # "John Doe on "
-                # Single names
-                r'for\s+([A-Z][a-z]+)',  # "for John"
-                r'([A-Z][a-z]+)\s+for',  # "John for"
-                r'([A-Z][a-z]+)\s+at',   # "John at"
-                r'([A-Z][a-z]+)\s+on',   # "John on"
-                r'([A-Z][a-z]+)\s+appointment',  # "John appointment"
-                r'([A-Z][a-z]+),',       # "John,"
-                r'([A-Z][a-z]+)\.',      # "John."
-                r'([A-Z][a-z]+)\s+you',   # "John you"
-                r'([A-Z][a-z]+)\s+we',    # "John we"
-                r'([A-Z][a-z]+)\s+your',  # "John your"
-                r'([A-Z][a-z]+)\s+for\s+',  # "John for "
-                r'([A-Z][a-z]+)\s+at\s+',   # "John at "
-                r'([A-Z][a-z]+)\s+on\s+',   # "John on "
-            ]
-            
-            # Also check input text for names mentioned by user
-            input_name_patterns = [
-                r'User message:\s*([A-Z][a-z]+)',  # Single name after "User message:"
-                r'User message:\s*([A-Z][a-z]+\s+[A-Z][a-z]+)',  # Two-word name after "User message:"
-                r'([A-Z][a-z]+)\s*$',  # Single name at end of input
-                r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s*$',  # Two-word name at end of input
-            ]
-            
+            logger.info("Adding appointment summary with details from conversation history")
+            # Extract appointment details from conversation history
             patient_name = None
-            # First try to extract from response
-            for pattern in name_patterns:
-                name_match = re.search(pattern, response)
-                if name_match:
-                    patient_name = name_match.group(1)
-                    break
+            appointment_reason = None
+            appointment_date_str = None
+            appointment_time_str = None
+            appointment_phone = None
             
-            # If no name found in response, try to extract from input text
+            if session:
+                # Get conversation history
+                from langchain.schema import HumanMessage
+                history = session.get_history()
+                
+                # Extract details from user messages ONLY (not bot responses)
+                for message in history:
+                    # Only process HumanMessage (user messages), skip AIMessage (bot responses)
+                    if isinstance(message, HumanMessage) and hasattr(message, 'content'):
+                        msg_content = message.content.strip()
+                        
+                        # Extract name (look for short messages without common keywords)
+                        if not patient_name and len(msg_content.split()) <= 4:
+                            if not any(keyword in msg_content.lower() for keyword in ['appointment', 'schedule', 'book', 'checkup', 'cleaning', 'pain', 'emergency', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'tomorrow', 'phone', 'contact', 'am', 'pm', ':']):
+                                if not re.search(r'\d', msg_content):  # No numbers
+                                    patient_name = msg_content.title()
+                        
+                        # Extract reason
+                        if not appointment_reason:
+                            if 'checkup' in msg_content.lower():
+                                appointment_reason = 'Checkup'
+                            elif 'cleaning' in msg_content.lower():
+                                appointment_reason = 'Cleaning'
+                            elif 'pain' in msg_content.lower():
+                                appointment_reason = 'Pain'
+                            elif 'emergency' in msg_content.lower():
+                                appointment_reason = 'Emergency'
+                        
+                        # Extract date
+                        if not appointment_date_str:
+                            date_match = re.search(r'\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{0,4}', msg_content, re.IGNORECASE)
+                            if date_match:
+                                appointment_date_str = date_match.group(0)
+                        
+                        # Extract time - ONLY from user messages, not bot availability lists
+                        if not appointment_time_str:
+                            # Skip if message looks like a bot's availability list
+                            if 'availability at' not in msg_content.lower() and 'prefer for your appointment' not in msg_content.lower():
+                                time_match = re.search(r'\d{1,2}(?::\d{2})?\s*(?:am|pm)', msg_content, re.IGNORECASE)
+                                if time_match:
+                                    appointment_time_str = time_match.group(0).upper()
+                        
+                        # Extract phone
+                        if not appointment_phone:
+                            phone_match = re.search(r'\d{10}', msg_content) or re.search(r'\d{3}[-.]?\d{3}[-.]?\d{4}', msg_content)
+                            if phone_match:
+                                appointment_phone = phone_match.group(0)
+            
+            # Fallback: try to extract from response if not found in history
             if not patient_name:
-                for pattern in input_name_patterns:
-                    name_match = re.search(pattern, input_text)
+                name_patterns = [
+                    r'for\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',  # "for John" or "for John Doe"
+                    r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+for',  # "John for" or "John Doe for"
+                ]
+                for pattern in name_patterns:
+                    name_match = re.search(pattern, response)
                     if name_match:
                         patient_name = name_match.group(1)
                         break
             
-            # Extract time if mentioned
-            time_match = re.search(r'(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))', response)
-            if time_match:
-                time_str = time_match.group(1)
-                # Find which day was mentioned and get its exact date
+            # Use the extracted time from conversation history
+            time_str = appointment_time_str
+            
+            # Normalize time format: convert "2pm" to "2:00 PM", "2:30pm" to "2:30 PM", etc.
+            if time_str:
+                time_str_upper = time_str.upper()
+                # If time doesn't have minutes (e.g., "2PM"), add ":00"
+                if ':' not in time_str_upper:
+                    time_str = re.sub(r'(\d{1,2})\s*(AM|PM)', r'\1:00 \2', time_str_upper)
+                else:
+                    # Ensure proper spacing
+                    time_str = re.sub(r'(\d{1,2}:\d{2})\s*(AM|PM)', r'\1 \2', time_str_upper)
+            
+            logger.info(f"Extracted and normalized time from history: {time_str}")
+            
+            # Only try to extract from response if we didn't find it in history
+            # And make sure we're not extracting from availability list
+            if not time_str and 'availability at' not in response.lower():
+                time_match = re.search(r'(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))', response)
+                if time_match:
+                    time_str = time_match.group(1)
+                    logger.info(f"Extracted time from response: {time_str}")
+            
+            # Parse the extracted date string to get a formatted date
+            day_date = None
+            if appointment_date_str:
+                try:
+                    from datetime import datetime
+                    # Clean the date string
+                    date_str_clean = re.sub(r'(?:st|nd|rd|th)', '', appointment_date_str)
+                    
+                    # Try to parse the date
+                    for fmt in ['%d %b %Y', '%d %B %Y', '%d %b', '%d %B']:
+                        try:
+                            parsed_date = datetime.strptime(date_str_clean, fmt)
+                            if parsed_date.year == 1900:
+                                parsed_date = parsed_date.replace(year=2025)
+                            day_date = parsed_date.strftime('%A, %B %d, %Y')
+                            break
+                        except ValueError:
+                            continue
+                except:
+                    pass
+            
+            # Fallback: find day mentioned in response
+            if not day_date:
                 mentioned_day = None
                 for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
                     if day in response:
@@ -821,11 +902,24 @@ User message: {message}"""
                 
                 if mentioned_day:
                     day_date = replacements.get(mentioned_day, f"{mentioned_day}")
-                    # Create enhanced appointment summary with patient name
-                    if patient_name:
-                        response += f"\n\n📅 **Appointment Summary:**\n- **Patient Name:** {patient_name}\n- **Date & Time:** {day_date} at {time_str}\n\nTo confirm this appointment, please reply with 'CONFIRM' or let me know if you'd like to make any changes."
-                    else:
-                        response += f"\n\n📅 **Appointment Summary:** Your appointment is scheduled for {time_str} on {day_date}.\n\nTo confirm this appointment, please reply with 'CONFIRM' or let me know if you'd like to make any changes."
+                    # Ensure day_date is a string, not a datetime object
+                    if hasattr(day_date, 'strftime'):
+                        day_date = day_date.strftime('%A, %B %d, %Y')
+            
+            # Create enhanced appointment summary with all details
+            if time_str and day_date:
+                summary_parts = []
+                if patient_name:
+                    summary_parts.append(f"- **Patient Name:** {patient_name}")
+                if day_date and time_str:
+                    summary_parts.append(f"- **Date & Time:** {day_date} at {time_str}")
+                if appointment_reason:
+                    summary_parts.append(f"- **Reason:** {appointment_reason}")
+                if appointment_phone:
+                    summary_parts.append(f"- **Contact:** {appointment_phone}")
+                
+                if summary_parts:
+                    response += f"\n\n📅 **Appointment Summary:**\n" + "\n".join(summary_parts) + "\n\nTo complete your booking, please click the 'Confirm Appointment' button below, or I can have our receptionist call you to finalize the booking. Is there anything else you'd like to know?"
         
         return response
 

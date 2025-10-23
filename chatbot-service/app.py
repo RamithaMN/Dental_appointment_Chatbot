@@ -284,13 +284,14 @@ async def http_exception_handler(request, exc: HTTPException):
 async def general_exception_handler(request, exc: Exception):
     """Handle general exceptions."""
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
+    error_response = ErrorResponse(
+        detail="An unexpected error occurred. Please try again later.",
+        error_code="INTERNAL_ERROR",
+        timestamp=datetime.now()
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=ErrorResponse(
-            detail="An unexpected error occurred. Please try again later.",
-            error_code="INTERNAL_ERROR",
-            timestamp=datetime.now()
-        ).model_dump()
+        content=error_response.model_dump(mode='json')
     )
 
 

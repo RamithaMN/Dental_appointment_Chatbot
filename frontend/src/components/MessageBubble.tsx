@@ -19,7 +19,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onConfirmAppoint
   // Check if this is an appointment summary message
   const isAppointmentSummary = !isUser && (
     message.content.includes('📅 **Appointment Summary:**') ||
-    message.content.includes('To confirm this appointment')
+    message.content.includes('To confirm this appointment') ||
+    message.content.includes('Book Appointment') ||
+    message.content.includes('book appointment') ||
+    message.content.includes('click the \'Book Appointment\' button') ||
+    message.content.includes('receptionist call you to finalize') ||
+    message.content.includes('complete your booking')
   );
 
   return (

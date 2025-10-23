@@ -1,39 +1,31 @@
-# 🦷 Dental Appointment Chatbot
+# 🦷 Dental Chatbot Application
 
-A complete full-stack AI-powered dental chatbot application with intelligent date handling, appointment scheduling, and business hours enforcement.
+A complete full-stack dental chatbot application with **Node.js/Express backend**, **Python/LangChain AI chatbot**, and **Next.js frontend**.
 
-## ✨ Key Features
-
-- 🤖 **Smart Date Handling**: Correctly calculates day-of-week for any date
-- 🚫 **Sunday Closure Detection**: Automatically blocks Sunday appointments
-- ⏰ **Saturday Hours Enforcement**: Only offers 9:00 AM - 2:00 PM slots on Saturdays
-- 📅 **Interactive Appointment Booking**: One-click appointment confirmation
-- 🔐 **Secure Authentication**: JWT-based user authentication
-- 🐳 **Docker Ready**: Complete containerized deployment
-- 🌐 **Multi-LLM Support**: OpenAI, Anthropic, and local models
-
-## 🚀 Quick Start
+## 🚀 Quick Start (Docker - Recommended)
 
 ### Prerequisites
-- Docker and Docker Compose
+- Docker and Docker Compose installed
 - OpenAI API key (or Anthropic/Local model)
 
 ### 1. Configure Environment
+
 ```bash
 # Copy example environment file
 cp .env.example .env
 
 # Edit .env and add your API key
-nano .env
+nano .env  # or use any editor
 ```
 
-**Minimum required in `.env`:**
+Minimum required in `.env`:
 ```env
 LLM_PROVIDER=openai
 OPENAI_API_KEY=your-api-key-here
 ```
 
 ### 2. Start All Services
+
 ```bash
 # Build and start all services
 docker-compose up --build
@@ -43,87 +35,17 @@ docker-compose up -d --build
 ```
 
 ### 3. Access the Application
+
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **Chatbot Service**: http://localhost:8001
 - **API Docs**: http://localhost:8001/docs
 
 ### 4. Login
+
 Use these demo credentials:
 - Username: `demo` / Password: `demo123`
 - Username: `admin` / Password: `admin123`
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Dental Chatbot System                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────┐         ┌──────────┐         ┌───────────┐  │
-│  │ Frontend │ ──JWT──>│  Node.js │ ──HTTP─>│  Python   │  │
-│  │ Next.js  │ <──────│  Express │ <──────│ LangChain │  │
-│  └──────────┘         └──────────┘         └───────────┘  │
-│   Port 3000            Port 8000            Port 8001     │
-│                                                             │
-│                                             ┌─────────────┐│
-│                                             │  LLM API    ││
-│                                             │ (OpenAI/    ││
-│                                             │  Anthropic) ││
-│                                             └─────────────┘│
-└─────────────────────────────────────────────────────────────┘
-```
-
-## 🎯 Services
-
-### 1. Frontend (Next.js)
-- **Port**: 3000
-- **Features**: 
-  - Interactive chat interface
-  - Appointment booking with confirmation buttons
-  - User authentication
-  - Responsive design with Tailwind CSS
-
-### 2. Backend (Node.js/Express)
-- **Port**: 8000
-- **Features**:
-  - JWT authentication
-  - API gateway
-  - Request forwarding to chatbot
-  - Rate limiting and security
-
-### 3. Chatbot Service (Python/LangChain)
-- **Port**: 8001
-- **Features**:
-  - LangChain-powered conversations
-  - Multi-provider LLM support
-  - Smart date handling and business hours enforcement
-  - Session management
-  - Context-aware responses
-
-## 🔧 Configuration
-
-### LLM Provider Options
-
-#### Option 1: OpenAI (Recommended)
-```env
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-3.5-turbo  # or gpt-4
-```
-
-#### Option 2: Anthropic Claude
-```env
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_MODEL=claude-3-opus-20240229
-```
-
-#### Option 3: Local/Open Source
-```env
-LLM_PROVIDER=local
-LOCAL_MODEL_NAME=mistralai/Mistral-7B-Instruct-v0.2
-```
 
 ## 🛠️ Docker Commands
 
@@ -153,39 +75,157 @@ docker-compose ps
 docker-compose down -v
 ```
 
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Dental Chatbot System                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────┐         ┌──────────┐         ┌───────────┐  │
+│  │ Frontend │ ──JWT──>│  Node.js │ ──HTTP─>│  Python   │  │
+│  │ Next.js  │ <──────│  Express │ <──────│ LangChain │  │
+│  └──────────┘         └──────────┘         └───────────┘  │
+│   Port 3000            Port 8000            Port 8001     │
+│                                                             │
+│                                             ┌─────────────┐│
+│                                             │  LLM API    ││
+│                                             │ (OpenAI/    ││
+│                                             │  Anthropic) ││
+│                                             └─────────────┘│
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 🎯 Services
+
+### 1. Frontend (Next.js)
+- **Port**: 3000
+- **Container**: `dental-frontend`
+- **Features**: 
+  - Chat interface
+  - Appointment booking
+  - User authentication
+  - Responsive design
+
+### 2. Backend (Node.js/Express)
+- **Port**: 8000
+- **Container**: `dental-backend`
+- **Features**:
+  - JWT authentication
+  - API gateway
+  - Request forwarding to chatbot
+  - Rate limiting
+
+### 3. Chatbot Service (Python/LangChain)
+- **Port**: 8001
+- **Container**: `dental-chatbot`
+- **Features**:
+  - LangChain-powered conversations
+  - Multi-provider LLM support
+  - Session management
+  - Context-aware responses
+
+## 🔧 Configuration
+
+### LLM Provider Options
+
+#### Option 1: OpenAI (Recommended)
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-3.5-turbo  # or gpt-4
+```
+
+#### Option 2: Anthropic Claude
+```env
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-3-opus-20240229
+```
+
+#### Option 3: Local/Open Source
+```env
+LLM_PROVIDER=local
+LOCAL_MODEL_NAME=mistralai/Mistral-7B-Instruct-v0.2
+```
+
+### Advanced Configuration
+
+See `.env.example` for all available options including:
+- Conversation history length
+- Memory type (buffer/summary/token)
+- Session timeout
+- Model parameters (temperature, max tokens)
+
 ## 📦 Project Structure
 
 ```
 ChatBot_Dental/
 ├── backend/                    # Node.js Express API
-│   ├── app.js                 # Main Express server
-│   ├── auth.js                # JWT authentication
-│   ├── appointments.js        # Appointment management
-│   ├── database.js           # Database operations
-│   ├── middleware.js         # Security middleware
-│   └── Dockerfile
-├── chatbot-service/           # Python LangChain service
-│   ├── app.py                # FastAPI application
-│   ├── chatbot_chain.py      # Core chatbot logic
-│   ├── conversation_manager.py # Session management
-│   ├── llm_provider.py       # LLM provider factory
-│   ├── models.py             # Data models
-│   ├── requirements.txt      # Python dependencies
-│   └── Dockerfile
-├── frontend/                  # Next.js frontend
-│   ├── src/
-│   │   ├── app/              # Next.js app directory
-│   │   ├── components/       # React components
-│   │   ├── contexts/         # React contexts
-│   │   ├── hooks/            # Custom hooks
-│   │   └── lib/              # Utility functions
+│   ├── app.js
+│   ├── auth.js
+│   ├── config.js
+│   ├── middleware.js
 │   ├── package.json
 │   └── Dockerfile
-├── database/                  # Database setup
-│   └── init.sql              # PostgreSQL schema
-├── docker-compose.yml         # Main Docker configuration
-├── .env.example               # Environment template
-└── README.md                  # This file
+├── chatbot-service/            # Python LangChain service
+│   ├── app.py
+│   ├── chatbot_chain.py
+│   ├── conversation_manager.py
+│   ├── llm_provider.py
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/                   # Next.js frontend
+│   ├── src/
+│   ├── package.json
+│   └── Dockerfile
+├── docker-compose.yml          # Main Docker configuration
+├── .env.example                # Environment template
+└── README.md                   # This file
+```
+
+## 🐛 Troubleshooting
+
+### Services Won't Start
+
+**Check logs:**
+```bash
+docker-compose logs
+```
+
+**Common issues:**
+- Missing `.env` file → Copy from `.env.example`
+- Invalid API key → Check your LLM provider credentials
+- Port conflicts → Stop services on ports 3000, 8000, 8001
+
+### Chatbot Not Responding
+
+**Check chatbot service health:**
+```bash
+curl http://localhost:8001/health
+```
+
+**View chatbot logs:**
+```bash
+docker-compose logs chatbot-service
+```
+
+**Common issues:**
+- Missing or invalid API key
+- LLM provider rate limits
+- Network connectivity
+
+### Container Keeps Restarting
+
+**Check specific container:**
+```bash
+docker-compose ps
+docker logs dental-chatbot
+```
+
+**Restart specific service:**
+```bash
+docker-compose restart chatbot-service
 ```
 
 ## 🧪 Testing
@@ -220,47 +260,6 @@ curl -X POST http://localhost:8000/api/chatbot/chat \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"message":"I need a dental checkup"}'
-```
-
-## 🐛 Troubleshooting
-
-### Services Won't Start
-**Check logs:**
-```bash
-docker-compose logs
-```
-
-**Common issues:**
-- Missing `.env` file → Copy from `.env.example`
-- Invalid API key → Check your LLM provider credentials
-- Port conflicts → Stop services on ports 3000, 8000, 8001
-
-### Chatbot Not Responding
-**Check chatbot service health:**
-```bash
-curl http://localhost:8001/health
-```
-
-**View chatbot logs:**
-```bash
-docker-compose logs chatbot-service
-```
-
-**Common issues:**
-- Missing or invalid API key
-- LLM provider rate limits
-- Network connectivity
-
-### Container Keeps Restarting
-**Check specific container:**
-```bash
-docker-compose ps
-docker logs dental-chatbot
-```
-
-**Restart specific service:**
-```bash
-docker-compose restart chatbot-service
 ```
 
 ## 🚀 Development Mode
@@ -329,34 +328,12 @@ docker stats
 ### Free Alternative
 Use `LLM_PROVIDER=local` for free open-source models (requires more resources)
 
-## 🎯 Key Improvements
+## 📚 Documentation
 
-### Smart Date Handling
-- ✅ Correctly calculates day-of-week for any date
-- ✅ Handles multiple date formats (14th december, December 14th)
-- ✅ Prevents incorrect date calculations
-
-### Business Hours Enforcement
-- ✅ **Sunday Closure**: Automatically blocks Sunday appointments
-- ✅ **Saturday Hours**: Only offers 9:00 AM - 2:00 PM slots
-- ✅ **Smart Week Selection**: Shows appropriate future dates
-
-### Interactive Features
-- ✅ **Appointment Confirmation Buttons**: One-click booking
-- ✅ **Patient Name Extraction**: Includes names in summaries
-- ✅ **Conditional Summaries**: Only for confirmed bookings
-
-### Technical Features
-- ✅ **Multi-LLM Support**: OpenAI, Anthropic, Local models
-- ✅ **Session Management**: Persistent conversations
-- ✅ **Error Handling**: Robust error recovery
-- ✅ **Docker Deployment**: Easy containerized setup
-
-## 📚 API Documentation
-
-When services are running, visit:
-- **Backend API**: http://localhost:8000/docs
-- **Chatbot API**: http://localhost:8001/docs
+- **LangChain Guide**: `CHATBOT_SERVICE_GUIDE.md`
+- **Docker Setup**: `DOCKER_SETUP_COMPLETE.md`
+- **LangChain Summary**: `LANGCHAIN_CHATBOT_SUMMARY.md`
+- **API Examples**: Check `/docs` endpoint when services are running
 
 ## 🤝 Support
 
@@ -372,7 +349,7 @@ MIT License
 
 ---
 
-
+**Built with ❤️ using Node.js, Python, LangChain, and Next.js**
 
 **Get started in 3 commands:**
 ```bash
@@ -380,5 +357,4 @@ cp .env.example .env          # Configure
 # Edit .env with your API key
 docker-compose up --build     # Run
 # Open http://localhost:3000  # Use
-```# Updated git configuration
-# Author configuration updated to RamithaMN
+```
