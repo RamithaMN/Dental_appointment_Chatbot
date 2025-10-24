@@ -349,7 +349,6 @@ MIT License
 
 ---
 
-**Built with ❤️ using Node.js, Python, LangChain, and Next.js**
 
 **Get started in 3 commands:**
 ```bash
